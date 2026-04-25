@@ -171,7 +171,7 @@ export default function App() {
       case 'auth':
         return <Auth key="auth" hasAnchorTree={hasAnchorTree} onNavigate={(s, data) => navigate(s, data)} />;
       case 'naming':
-        return <Naming key="naming" onNavigate={(s, name) => navigate(s, { treeName: name })} />;
+        return <Naming key="naming" onNavigate={(s, data) => navigate(s, data)} />;
       case 'sanctuary':
         return <Sanctuary key="sanctuary" treeName={treeName} treeId={selectedTreeId} onNavigate={(s) => navigate(s)} />;
       case 'pre_session':

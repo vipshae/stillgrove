@@ -32,7 +32,7 @@ export default function Breathing({ onNavigate }: BreathingProps) {
   }, []);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     const hideUI = () => {
       setShowUI(true);
       clearTimeout(timeout);
