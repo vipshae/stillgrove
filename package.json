@@ -11,10 +11,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@firebase-oss/ui-react": "^7.0.2-beta",
+    "@tailwindcss/vite": "^4.1.14",
     "firebase": "^12.11.0",
     "p5": "^2.2.3",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -29,6 +33,7 @@
     "globals": "^17.4.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "tailwindcss": "^4.1.14"
   }
 }

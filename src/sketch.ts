@@ -57,11 +57,25 @@ let animationStart = 0;
 let root: Branch | null = null;
 let currentP: p5 | null = null;
 
+let treeSeed = 123; // Default seed; will be set based on tree_id in real app
+
+export function setTreeSeed(id: string) {
+  // Convert the string ID into a numerical seed
+  let seed = 0;
+  for (let i = 0; i < id.length; i++) {
+    seed += id.charCodeAt(i);
+  }
+  treeSeed = seed;
+}
+
 // ─── Sketch Function ─────────────────────────────────────────────────────────
 export const sketch = (p: p5) => {
   p.setup = () => {
     p.createCanvas(500, 720);
     p.angleMode(p.RADIANS);
+    // Use a fixed seed for consistent tree generation based on the user's total hours
+    p.randomSeed(treeSeed);
+
     currentP = p;
     root = generateStableBranch(BASE_LEN, MAX_DEPTH, p);
     updateGrowthTarget();
