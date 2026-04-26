@@ -6,7 +6,7 @@ import { getAuth } from 'firebase/auth';
 
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string || '',
+  apiKey: "AIzaSyBNy5y18fTrTvXwiGdCfB-MCRuqZts2aM4",
   authDomain: "still-grove.firebaseapp.com",
   projectId: "still-grove",
   storageBucket: "still-grove.firebasestorage.app",
