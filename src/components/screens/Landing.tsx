@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { ArrowRightIcon } from 'lucide-react';
-import { type Screen } from '../types';
+import { type Screen } from '../../core/types';
 
 interface LandingProps {
   onNavigate: (screen: Screen) => void;

@@ -1,9 +1,8 @@
 import { motion } from 'motion/react';
 import { ArrowRightIcon, LeafIcon, TimerIcon, FlameIcon, SunIcon, ChevronRightIcon } from 'lucide-react';
-import { type Screen } from '../types';
-import { useTree } from '../hooks/useTree';
+import { type Screen } from '../../core/types';
+import { useTree } from '../../hooks/useTree';
 import TreeSketch from '../TreeSketch';
-// import TreeCanvas from '../TreeCanvas';
 
 interface SanctuaryProps {
   treeName?: string;

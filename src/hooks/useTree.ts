@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { Tree } from './useTrees';
 import { db } from '../firebase';
@@ -10,11 +10,17 @@ export function useTree(treeId?: string | null) {
 
   useEffect(() => {
     if (!treeId) {
-      setTree(null);
-      setLoading(false);
+      startTransition(() => {
+        setTree(null);
+        setLoading(false);
+      });
       return;
     }
-    setLoading(true);
+
+    startTransition(() => {
+      setLoading(true);
+    });
+
     const ref = doc(db, 'trees', treeId);
     const unsub = onSnapshot(ref, (snap) => {
       if (!snap.exists()) {

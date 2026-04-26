@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 import { collection, addDoc, doc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db } from '../firebase';
@@ -14,85 +14,110 @@ export interface Tree {
   groveId?: string | null;
 }
 
-const treeCollectionName = 'trees';
+const TREES = 'trees';
 
 export function useTrees(user?: User | null) {
   const [trees, setTrees] = useState<Tree[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // only subscribe to tree updates if user is signed in
   useEffect(() => {
     if (!user) {
-      setTrees([]);
-      setLoading(false);
+      startTransition(() => {
+        setTrees([]);
+        setLoading(false);
+      });
       return;
     }
-    const q = query(collection(db, treeCollectionName), where('userId', '==', user.uid));
-    setLoading(true);
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const userTrees = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          userId: data.userId as string,
-          name: data.name as string,
-          totalHours: (data.totalHours ?? 0) as number,
-          sqs: (data.sqs ?? 0.5) as number,
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-          hasBloomed: data.hasBloomed as boolean | undefined,
-          groveId: data.groveId as string | undefined,
-        } as Tree;
-      });
-      setTrees(userTrees);
-      setLoading(false);
-      setError(null);
-    }, (err) => {
-      console.error('Error listening for trees:', err);
-      setError(err as Error);
-      setLoading(false);
-    });
-
+    const q = query(collection(db, TREES), where('userId', '==', user.uid));
+    startTransition(() => setLoading(true));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setTrees(snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            userId: data.userId as string,
+            name: data.name as string,
+            totalHours: (data.totalHours ?? 0) as number,
+            sqs: (data.sqs ?? 0.5) as number,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+            hasBloomed: data.hasBloomed as boolean | undefined,
+            groveId: data.groveId as string | undefined,
+          } satisfies Tree;
+        }));
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('Error listening for trees:', err);
+        setError(err as Error);
+        setLoading(false);
+      },
+    );
     return () => unsubscribe();
   }, [user]);
-  
-  const createTree = async (name: string) => {
+
+  // user.uid is the only closure dep; user identity change triggers full re-sub above
+  const createTree = useCallback(async (name: string) => {
     if (!user) return;
-    const newTreeSeedData: Omit<Tree, 'id'> = {
+    const seed = {
       name,
       userId: user.uid,
       createdAt: new Date(),
       totalHours: 0,
       sqs: 0.5,
       hasBloomed: false,
-      groveId: null,    
+      groveId: null,
     };
-    let docRef;
     try {
-      docRef = await addDoc(collection(db, treeCollectionName), newTreeSeedData);
+      const ref = await addDoc(collection(db, TREES), seed);
+      // Return the optimistic tree; onSnapshot will confirm it shortly
+      return { id: ref.id, ...seed } as Tree;
     } catch (err) {
-      console.error('Error creating tree:', err);
       setError(err as Error);
       throw err;
     }
-    // Do not mutate local state here — onSnapshot will pick up the new document and update state.
-    const newTree: Tree = { 
-      id: docRef.id, userId: user.uid, name, createdAt: newTreeSeedData.createdAt, totalHours: 0, sqs: 0.5, hasBloomed: false, groveId: null};
-    return newTree;
-  };
+  }, [user]);
 
-  const updateTree = async (treeId: string, updates: Partial<Tree>) => {
+  // No state deps — only calls Firestore and setError (stable setter)
+  const createSession = useCallback(async (treeId: string, data: Record<string, unknown>) => {
     try {
-      await updateDoc(doc(db, treeCollectionName, treeId), updates);
+      const ref = await addDoc(
+        collection(doc(db, TREES, treeId), 'sessions'),
+        { ...data, createdAt: new Date() },
+      );
+      return { id: ref.id };
     } catch (err) {
-      console.error('Error updating tree:', err);
       setError(err as Error);
       throw err;
     }
-    setTrees(prev => prev.map(tree =>
-      tree.id === treeId ? { ...tree, ...updates } : tree
-    ));
-  };
+  }, []);
 
-  return { trees, loading, error, createTree, updateTree };
+  const updateSession = useCallback(async (
+    treeId: string,
+    sessionId: string,
+    updates: Record<string, unknown>,
+  ) => {
+    try {
+      await updateDoc(doc(db, TREES, treeId, 'sessions', sessionId), updates);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    }
+  }, []);
+
+  // setTrees is a stable React setter — safe in [] deps
+  const updateTree = useCallback(async (treeId: string, updates: Partial<Tree>) => {
+    try {
+      await updateDoc(doc(db, TREES, treeId), updates);
+      setTrees(prev => prev.map(t => t.id === treeId ? { ...t, ...updates } : t));
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    }
+  }, []);
+
+  return { trees, loading, error, createTree, createSession, updateSession, updateTree };
 }

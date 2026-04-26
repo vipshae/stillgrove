@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import p5 from 'p5';
-import { sketch, setTotalHours, setSQS } from "./sketch.ts";
+import { sketch, setTotalHours, setSQS } from "../core/sketch.ts";
 
 interface TreeSketchProps {
   totalHours: number;

@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { XIcon } from 'lucide-react';
-import { type Screen } from '../types';
 
 interface BreathingProps {
-  onNavigate: (screen: Screen) => void;
+  onEndSession: () => void;
+  onSignal?: (update: { distractionCount?: number; distractionSeconds?: number; stillnessScore?: number; uninterruptedMinutes?: number }) => void;
   key?: string;
 }
 
-export default function Breathing({ onNavigate }: BreathingProps) {
+export default function Breathing({ onEndSession, onSignal }: BreathingProps) {
   const [phase, setPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const [timer, setTimer] = useState(300); // 5 minutes in seconds
   const [showUI, setShowUI] = useState(true);
@@ -19,6 +19,13 @@ export default function Breathing({ onNavigate }: BreathingProps) {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Track interaction-based signals and report periodically
+  const distractionCountRef = useRef(0);
+  const distractionSecondsRef = useRef(0);
+  const elapsedRef = useRef(0);
+  const secondsSinceActivityRef = useRef(0);
+  const signalThrottleRef = useRef(0);
 
   useEffect(() => {
     const cycle = setInterval(() => {
@@ -37,23 +44,53 @@ export default function Breathing({ onNavigate }: BreathingProps) {
       setShowUI(true);
       clearTimeout(timeout);
       timeout = setTimeout(() => setShowUI(false), 3500);
+
+      // record this as an interaction (possible distraction)
+      distractionCountRef.current += 1;
+      distractionSecondsRef.current += 5; // approximate seconds lost
+      secondsSinceActivityRef.current = 0;
+
+      if (onSignal) {
+        const elapsed = elapsedRef.current || 1;
+        const stillnessScore = 1 - Math.min(distractionSecondsRef.current / Math.max(60, elapsed), 1);
+        onSignal({ distractionCount: distractionCountRef.current, distractionSeconds: distractionSecondsRef.current, stillnessScore, uninterruptedMinutes: Math.floor((elapsed - distractionSecondsRef.current) / 60) });
+      }
     };
-    
-    window.addEventListener('mousemove', hideUI);
-    window.addEventListener('mousedown', hideUI);
-    window.addEventListener('touchstart', hideUI);
-    window.addEventListener('keydown', hideUI);
-    
+
+    const activityHandler = hideUI;
+    window.addEventListener('mousemove', activityHandler);
+    window.addEventListener('mousedown', activityHandler);
+    window.addEventListener('touchstart', activityHandler);
+    window.addEventListener('keydown', activityHandler);
+
     hideUI();
-    
+
     return () => {
-      window.removeEventListener('mousemove', hideUI);
-      window.removeEventListener('mousedown', hideUI);
-      window.removeEventListener('touchstart', hideUI);
-      window.removeEventListener('keydown', hideUI);
+      window.removeEventListener('mousemove', activityHandler);
+      window.removeEventListener('mousedown', activityHandler);
+      window.removeEventListener('touchstart', activityHandler);
+      window.removeEventListener('keydown', activityHandler);
       clearTimeout(timeout);
     };
-  }, []);
+  }, [onSignal]);
+
+  // report periodic signals (every 10s)
+  useEffect(() => {
+    const rpt = setInterval(() => {
+      elapsedRef.current += 1;
+      secondsSinceActivityRef.current += 1;
+      signalThrottleRef.current += 1;
+      if (signalThrottleRef.current >= 10) {
+        signalThrottleRef.current = 0;
+        if (onSignal) {
+          const elapsed = elapsedRef.current || 1;
+          const stillnessScore = 1 - Math.min(distractionSecondsRef.current / Math.max(60, elapsed), 1);
+          onSignal({ distractionCount: distractionCountRef.current, distractionSeconds: distractionSecondsRef.current, stillnessScore, uninterruptedMinutes: Math.floor((elapsed - distractionSecondsRef.current) / 60) });
+        }
+      }
+    }, 1000);
+    return () => clearInterval(rpt);
+  }, [onSignal]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -121,7 +158,7 @@ export default function Breathing({ onNavigate }: BreathingProps) {
             {formatTime(timer)} <span className="mx-2">|</span> 05:00
           </div>
           <button 
-            onClick={() => onNavigate('closing')}
+            onClick={onEndSession}
             className="px-8 py-3 rounded-full bg-black/30 backdrop-blur-md text-amber-50/70 border border-amber-500/10 hover:bg-black/50 hover:border-amber-500/30 hover:text-amber-50 transition-all duration-500 flex items-center gap-3 group shadow-lg shadow-black/20"
           >
             <span className="text-[10px] tracking-widest uppercase font-medium">End Session</span>

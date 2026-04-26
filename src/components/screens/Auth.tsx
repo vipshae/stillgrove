@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { GoogleSignInButton, SignUpAuthScreen, SignInAuthScreen } from '@firebase-oss/ui-react';
-import { type Screen } from '../types';
+import { type Screen } from '../../core/types';
 
 interface AuthProps {
-  onNavigate: (screen: Screen, data?: { treeName?: string; treeId?: string; hasAnchorTree?: boolean }) => void;
+  onNavigate: (screen: Screen) => void;
   hasAnchorTree: boolean;
   key?: string;
 }
@@ -38,49 +38,6 @@ export default function Auth({ onNavigate, hasAnchorTree }: AuthProps) {
           
           {authScreen === 'signin' && (
             <>
-              {/* <form 
-                className="space-y-6 relative z-10"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  // Check if user has an anchor tree
-                  // For new users who don't own a tree: they go to Naming Ceremony
-                  if (hasAnchorTree) {
-                    onNavigate('sanctuary');
-                  } else {
-                    onNavigate('naming');
-                  }
-                }}
-              >
-                <div className="space-y-4">
-                  <input 
-                    className="w-full bg-surface-container-low text-on-surface placeholder-on-surface/30 border border-on-surface/5 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-400 py-5 px-6 font-body outline-none" 
-                    placeholder="Email Address" 
-                    type="email" 
-                    required
-                  />
-                  <input 
-                    className="w-full bg-surface-container-low text-on-surface placeholder-on-surface/30 border border-on-surface/5 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-400 py-5 px-6 font-body outline-none" 
-                    placeholder="Password" 
-                    type="password" 
-                    required
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center space-x-2 cursor-pointer group">
-                    <input className="rounded border-on-surface/20 text-primary focus:ring-primary bg-white cursor-pointer" type="checkbox"/>
-                    <span className="text-xs uppercase tracking-widest font-bold text-on-surface opacity-40 group-hover:opacity-60 transition-opacity">Remember me</span>
-                  </label>
-                  <a className="text-[11px] uppercase tracking-widest font-bold text-primary hover:text-primary-container transition-colors duration-400" href="#">Forgot password?</a>
-                </div>
-                
-                <button 
-                  className="w-full bg-primary text-white font-body text-[11px] uppercase tracking-[0.3em] font-bold py-5 hover:bg-primary-container transition-all duration-500 shadow-sm rounded-full" 
-                  type="submit"
-                >
-                  Enter Sanctuary
-                </button>
-              </form> */}
               <div className="firebase-ui-screen">
                 <SignInAuthScreen onSignIn={() => navigateAfterSignInUp({ onNavigate, hasAnchorTree })} />
               </div>

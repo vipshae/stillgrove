@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
+import { useState } from 'react';
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
-import { type Screen } from '../types';
 
 interface PreSessionProps {
-  onNavigate: (screen: Screen) => void;
+  onStartSession: (moodBefore: number) => void;
   onBack: () => void;
   key?: string;
 }
@@ -16,7 +16,8 @@ const moods = [
   { icon: '😠', label: 'Angry' },
 ];
 
-export default function PreSession({ onNavigate, onBack }: PreSessionProps) {
+export default function PreSession({ onStartSession, onBack }: PreSessionProps) {
+  const [selectedMood, setSelectedMood] = useState<number | null>(null);
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -52,11 +53,15 @@ export default function PreSession({ onNavigate, onBack }: PreSessionProps) {
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary-container/10 rounded-full blur-3xl pointer-events-none"></div>
           <div className="grid grid-cols-5 gap-3 sm:gap-6 relative z-10">
             {moods.map((mood, i) => (
-              <button key={i} className="flex flex-col items-center gap-4 group focus:outline-none">
-                <div className="w-full aspect-square rounded-full bg-white flex items-center justify-center text-3xl shadow-sm border border-on-surface/5 transition-all duration-500 group-hover:scale-110 group-focus:ring-2 ring-primary ring-offset-2">
+              <button
+                key={i}
+                onClick={() => setSelectedMood(i + 1)}
+                className={`flex flex-col items-center gap-4 focus:outline-none ${selectedMood === i + 1 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+              >
+                <div className={`w-full aspect-square rounded-full bg-white flex items-center justify-center text-3xl shadow-sm border border-on-surface/5 transition-all duration-500 ${selectedMood === i + 1 ? 'scale-110' : 'group-hover:scale-110'}`}>
                   {mood.icon}
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface opacity-40 group-hover:opacity-100 transition-opacity">{mood.label}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-widest text-on-surface ${selectedMood === i + 1 ? 'opacity-100' : 'opacity-40'} transition-opacity`}>{mood.label}</span>
               </button>
             ))}
           </div>
@@ -97,8 +102,9 @@ export default function PreSession({ onNavigate, onBack }: PreSessionProps) {
         
         <div className="mt-8 flex justify-center pb-8">
           <button 
-            onClick={() => onNavigate('breathing')}
-            className="bg-primary text-white font-body text-sm uppercase tracking-[0.2em] font-bold px-16 py-6 rounded-full hover:bg-primary-container transition-all duration-500 w-full max-w-md shadow-lg shadow-primary/10 flex items-center justify-center gap-3 group"
+            onClick={() => selectedMood && onStartSession(selectedMood)}
+            disabled={!selectedMood}
+            className={`bg-primary text-white font-body text-sm uppercase tracking-[0.2em] font-bold px-16 py-6 rounded-full transition-all duration-500 w-full max-w-md shadow-lg shadow-primary/10 flex items-center justify-center gap-3 ${!selectedMood ? 'opacity-40 cursor-not-allowed' : 'hover:bg-primary-container'}`}
           >
             <span>Start Session</span>
             <ArrowRightIcon className="w-5 h-5 transition-transform duration-500 group-hover:translate-x-1" />

@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
-import { ArrowRightIcon, LeafIcon, WindIcon, AnchorIcon, DropletsIcon, SunIcon } from 'lucide-react';
-import { type Screen } from '../types';
+import { LeafIcon, WindIcon, AnchorIcon, DropletsIcon, SunIcon } from 'lucide-react';
 
 interface ClosingProps {
-  onNavigate: (screen: Screen) => void;
+  onFinish: (moodAfter: number) => void;
+  durationMinutes?: number;
   key?: string;
 }
 
@@ -14,7 +14,7 @@ const moods = [
   { icon: <SunIcon className="w-4 h-4" />, label: 'Clear' },
 ];
 
-export default function Closing({ onNavigate }: ClosingProps) {
+export default function Closing({ onFinish, durationMinutes = 0 }: ClosingProps) {
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
@@ -56,7 +56,7 @@ export default function Closing({ onNavigate }: ClosingProps) {
               <div className="bg-[#f5f5f0] rounded-[24px] p-8 flex-1 flex flex-col justify-center items-start text-left border border-on-surface/5">
                 <span className="text-[10px] uppercase tracking-widest font-bold text-primary-container mb-3">Duration</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-headline text-4xl text-on-surface">20</span>
+                  <span className="font-headline text-4xl text-on-surface">{durationMinutes}</span>
                   <span className="text-[10px] uppercase font-bold text-on-surface opacity-30 tracking-tighter">min</span>
                 </div>
               </div>
@@ -67,27 +67,20 @@ export default function Closing({ onNavigate }: ClosingProps) {
             <h2 className="font-headline text-3xl text-primary mb-8 italic">How do you feel now?</h2>
             <div className="flex flex-wrap justify-center gap-4">
               {moods.map((mood, i) => (
-                <button key={i} className="bg-white hover:bg-primary text-on-surface hover:text-white px-8 py-4 rounded-full transition-all duration-400 border border-on-surface/5 shadow-sm flex items-center gap-3 font-body text-[11px] uppercase tracking-widest font-bold group">
-                  <span className="opacity-60 group-hover:opacity-100">{mood.icon}</span>
-                  {mood.label}
-                </button>
+                <button key={i} onClick={() => { if (onFinish) onFinish(i+1); }} className="bg-white hover:bg-primary text-on-surface hover:text-white px-8 py-4 rounded-full transition-all duration-400 border border-on-surface/5 shadow-sm flex items-center gap-3 font-body text-[11px] uppercase tracking-widest font-bold group">
+                    <span className="opacity-60 group-hover:opacity-100">{mood.icon}</span>
+                    {mood.label}
+                  </button>
               ))}
             </div>
           </div>
           
           <div className="flex flex-col items-center gap-8 mt-4">
-            <button 
-              onClick={() => onNavigate('sanctuary')}
-              className="bg-primary text-white font-body text-sm uppercase tracking-[0.2em] font-bold px-12 py-5 rounded-full hover:bg-primary-container transition-all duration-500 shadow-md shadow-primary/10 flex items-center gap-3"
-            >
-              <span>Return to Sanctuary</span>
-              <ArrowRightIcon className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => onNavigate('landing')}
+            <button
+              onClick={() => onFinish && onFinish(3)}
               className="font-body text-[11px] uppercase tracking-widest font-bold text-on-surface opacity-30 hover:opacity-60 transition-opacity underline underline-offset-8"
             >
-              Sign Out
+              Skip reflection
             </button>
           </div>
         </div>

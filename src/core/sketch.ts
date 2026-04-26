@@ -119,6 +119,18 @@ export function setSQS(sqs: number) {
   SQS = sqs;
 }
 
+// Replay growth animation from a previous hours baseline. Call this after a new
+// p5 instance mounts (e.g. on the session result screen) so the tree visibly grows.
+export function replayGrowthAnimation(prevTotalHours: number) {
+  startGrowth = hoursToProgress(prevTotalHours);
+  growthProgress = startGrowth;
+  updateGrowthTarget();
+  if (currentP) {
+    animationStart = currentP.millis();
+  }
+  isAnimating = true;
+}
+
 export function triggerEndSession(newHours: number, sessionLengthHours?: number) {
   const sessionLen = sessionLengthHours !== undefined
     ? sessionLengthHours
