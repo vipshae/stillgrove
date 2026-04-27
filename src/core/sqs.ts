@@ -36,7 +36,7 @@ export function calculateSQS(session: SessionData, history: HistoryData = {}): n
   // Penalises distraction proportionally, but applies sqrt to soften harsh penalties.
   // A single brief tap shouldn't devastate a long session.
   const continuityRaw = session.durationMinutes > 0
-    ? session.uninterruptedMinutes / session.durationMinutes
+    ? Math.max(0, Math.min(1, session.uninterruptedMinutes / session.durationMinutes))
     : 0.5;
 
   // Additional soft penalty per distraction event — each costs up to 0.03

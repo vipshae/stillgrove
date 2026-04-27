@@ -51,9 +51,6 @@ export default function Sanctuary({ treeName, treeId, onNavigate }: SanctuaryPro
                 Begin New Session
                 <ArrowRightIcon className="w-5 h-5 ml-4 transition-transform group-hover:translate-x-1" />
               </button>
-              <p className="font-body text-[11px] uppercase tracking-widest font-bold text-on-surface opacity-30 italic px-1">
-                Sends a quick link to your mobile device.
-              </p>
             </div>
           </div>
 
@@ -66,10 +63,8 @@ export default function Sanctuary({ treeName, treeId, onNavigate }: SanctuaryPro
               className="w-full lg:w-[700px] aspect-[4/3] rounded-[48px] overflow-hidden shadow-2xl relative border border-on-surface/5 bg-[#f8f8f2]"
             >
               {/* Render the procedural sketch for this tree */}
-              {treeLoading ? (
-                <div className="w-full h-full flex items-center justify-center">Loading tree…</div>
-              ) : (
-                <div className="w-full h-full">
+              {!treeLoading && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
                   <TreeSketch totalHours={tree?.totalHours ?? 0} sqs={tree?.sqs ?? 0.5} />
                 </div>
               )}

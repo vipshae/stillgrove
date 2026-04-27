@@ -23,7 +23,7 @@ export default function App() {
 
   // ---- Data ----
   const { user, loading: authLoading } = useAuth();
-  const { trees, loading: treesLoading, error: treesError, createTree, createSession, updateSession, updateTree } = useTrees(user);
+  const { trees, initialized: treesInitialized, error: treesError, createTree, createSession, updateSession, updateTree } = useTrees(user);
   const { sessionDurationMinutes, sessionResult, onSignal, startSession, finishSession, resetSession } = useSession({ createSession, updateSession, updateTree });
 
   // Derived — never stored separately to avoid drift
@@ -32,23 +32,27 @@ export default function App() {
 
   // ---- Auth routing ----
 
-  // Detects treesLoading true→false to fire initial routing exactly once.
-  // This avoids the stale-false race where useTrees starts at loading=false,
-  // then goes true when the user arrives, then false after the first snapshot.
-  const prevTreesLoadingRef = useRef(treesLoading);
+  // hasRoutedRef prevents the effect from re-routing on every Firestore snapshot update.
+  // It is reset to false on sign-out so the next sign-in triggers routing again.
+  // treesInitialized (not treesLoading) is the stable signal: it flips false→true exactly
+  // once after the first snapshot regardless of whether Firestore returns cached data
+  // before startTransition commits setLoading(true) (the stale-false race).
+  const hasRoutedRef = useRef(false);
   useEffect(() => {
-    const justLoaded = !treesLoading && prevTreesLoadingRef.current;
-    prevTreesLoadingRef.current = treesLoading;
-    if (!justLoaded || authLoading || !user) return;
+    if (!treesInitialized || authLoading || !user || hasRoutedRef.current) return;
+    hasRoutedRef.current = true;
+    const destination = trees.length > 0 ? 'sanctuary' : 'naming';
+    historyRef.current = [destination]; // reset history — auth routing is not back-navigable
     startTransition(() => {
       setSelectedTreeId(trees[0]?.id ?? null);
-      setCurrentScreen(trees.length > 0 ? 'sanctuary' : 'naming');
+      setCurrentScreen(destination);
     });
-  }, [authLoading, treesLoading, user, trees]);
+  }, [treesInitialized, authLoading, user, trees]);
 
   // Sign-out: discard any active session and return to landing
   useEffect(() => {
     if (!authLoading && !user) {
+      hasRoutedRef.current = false;
       resetSession();
       startTransition(() => {
         setCurrentScreen(prev => (['landing', 'auth'].includes(prev) ? prev : 'landing'));
@@ -151,7 +155,7 @@ export default function App() {
 
   const showHeaderFooter = ['landing', 'auth', 'naming', 'sanctuary', 'pre_session', 'closing'].includes(currentScreen);
 
-  if (authLoading || (user && treesLoading)) {
+  if (authLoading || (user && !treesInitialized)) {
     return <Loading message="Preparing your grove…" />;
   }
   if (treesError) {
@@ -163,7 +167,10 @@ export default function App() {
       {showHeaderFooter && (currentScreen === 'landing' || currentScreen === 'sanctuary') && (
         <header className={`${currentScreen === 'landing' ? 'absolute bg-transparent' : 'sticky bg-white/80 backdrop-blur-md border-b border-on-surface/5'} top-0 left-0 right-0 z-50 transition-all duration-500`}>
           <div className="flex justify-between items-center w-full px-10 py-6 md:px-16 max-w-screen-2xl mx-auto font-headline">
-            <a className="flex items-center gap-3 text-2xl font-bold text-primary italic tracking-tight hover:opacity-80 transition-opacity cursor-pointer">
+            <a 
+              onClick={() => navigate('landing')}
+              className="flex items-center gap-3 text-2xl font-bold text-primary italic tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <Leaf className="w-6 h-6 text-primary rotate-[-20deg]" />
               StillGrove
             </a>
@@ -210,7 +217,12 @@ export default function App() {
         <footer className={`bg-[#f5f5f0] w-full mt-auto relative z-20 ${currentScreen === 'landing' ? 'pb-20' : 'pb-12'}`}>
           <div className="flex flex-col md:flex-row justify-between items-center gap-10 py-10 px-10 md:px-16 border-t border-on-surface/5 max-w-screen-2xl mx-auto">
             <div className="flex items-center gap-8 h-full">
-              <a className="text-2xl font-headline font-bold text-primary italic tracking-tight cursor-pointer">StillGrove</a>
+              <a 
+                onClick={() => navigate('landing')}
+                className="text-2xl font-headline font-bold text-primary italic tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                StillGrove
+              </a>
               <nav className="flex items-center gap-8 font-body text-[13px] font-medium text-on-surface/60">
                 {['Privacy', 'Terms', 'Support'].map((item) => (
                   <a key={item} className="hover:text-primary transition-opacity duration-300 cursor-pointer">

@@ -19,6 +19,9 @@ const TREES = 'trees';
 export function useTrees(user?: User | null) {
   const [trees, setTrees] = useState<Tree[]>([]);
   const [loading, setLoading] = useState(false);
+  // Flips false→true exactly once after the first snapshot arrives for the current user.
+  // Never reverts to false mid-session; resets to false only on sign-out.
+  const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -26,6 +29,7 @@ export function useTrees(user?: User | null) {
       startTransition(() => {
         setTrees([]);
         setLoading(false);
+        setInitialized(false);
       });
       return;
     }
@@ -34,26 +38,32 @@ export function useTrees(user?: User | null) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        setTrees(snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            userId: data.userId as string,
-            name: data.name as string,
-            totalHours: (data.totalHours ?? 0) as number,
-            sqs: (data.sqs ?? 0.5) as number,
-            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-            hasBloomed: data.hasBloomed as boolean | undefined,
-            groveId: data.groveId as string | undefined,
-          } satisfies Tree;
-        }));
-        setLoading(false);
-        setError(null);
+        startTransition(() => {
+          setTrees(snapshot.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              userId: data.userId as string,
+              name: data.name as string,
+              totalHours: (data.totalHours ?? 0) as number,
+              sqs: (data.sqs ?? 0.5) as number,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+              hasBloomed: data.hasBloomed as boolean | undefined,
+              groveId: data.groveId as string | undefined,
+            } satisfies Tree;
+          }));
+          setLoading(false);
+          setInitialized(true);
+          setError(null);
+        });
       },
       (err) => {
         console.error('Error listening for trees:', err);
-        setError(err as Error);
-        setLoading(false);
+        startTransition(() => {
+          setError(err as Error);
+          setLoading(false);
+          setInitialized(true); // unblock routing even on error; treesError will show instead
+        });
       },
     );
     return () => unsubscribe();
@@ -119,5 +129,5 @@ export function useTrees(user?: User | null) {
     }
   }, []);
 
-  return { trees, loading, error, createTree, createSession, updateSession, updateTree };
+  return { trees, loading, initialized, error, createTree, createSession, updateSession, updateTree };
 }

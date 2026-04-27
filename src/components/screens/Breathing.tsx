@@ -28,14 +28,16 @@ export default function Breathing({ onEndSession, onSignal }: BreathingProps) {
   const signalThrottleRef = useRef(0);
 
   useEffect(() => {
-    const cycle = setInterval(() => {
-      setPhase((p) => {
-        if (p === 'inhale') return 'hold';
-        if (p === 'hold') return 'exhale';
-        return 'inhale';
-      });
-    }, 4000);
-    return () => clearInterval(cycle);
+    let t: ReturnType<typeof setTimeout>;
+    const DURATIONS = { inhale: 4000, hold: 2000, exhale: 4000 } as const;
+    const NEXT = { inhale: 'hold', hold: 'exhale', exhale: 'inhale' } as const;
+    const tick = (current: keyof typeof NEXT) => {
+      const next = NEXT[current];
+      setPhase(next);
+      t = setTimeout(() => tick(next), DURATIONS[next]);
+    };
+    t = setTimeout(() => tick('inhale'), DURATIONS.inhale);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function Breathing({ onEndSession, onSignal }: BreathingProps) {
       if (onSignal) {
         const elapsed = elapsedRef.current || 1;
         const stillnessScore = 1 - Math.min(distractionSecondsRef.current / Math.max(60, elapsed), 1);
-        onSignal({ distractionCount: distractionCountRef.current, distractionSeconds: distractionSecondsRef.current, stillnessScore, uninterruptedMinutes: Math.floor((elapsed - distractionSecondsRef.current) / 60) });
+        onSignal({ distractionCount: distractionCountRef.current, distractionSeconds: distractionSecondsRef.current, stillnessScore, uninterruptedMinutes: Math.max(0, Math.floor((elapsed - distractionSecondsRef.current) / 60)) });
       }
     };
 
@@ -85,7 +87,7 @@ export default function Breathing({ onEndSession, onSignal }: BreathingProps) {
         if (onSignal) {
           const elapsed = elapsedRef.current || 1;
           const stillnessScore = 1 - Math.min(distractionSecondsRef.current / Math.max(60, elapsed), 1);
-          onSignal({ distractionCount: distractionCountRef.current, distractionSeconds: distractionSecondsRef.current, stillnessScore, uninterruptedMinutes: Math.floor((elapsed - distractionSecondsRef.current) / 60) });
+          onSignal({ distractionCount: distractionCountRef.current, distractionSeconds: distractionSecondsRef.current, stillnessScore, uninterruptedMinutes: Math.max(0, Math.floor((elapsed - distractionSecondsRef.current) / 60)) });
         }
       }
     }, 1000);
