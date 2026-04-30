@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { ArrowRightIcon, LeafIcon, TimerIcon, FlameIcon, SunIcon, ChevronRightIcon } from 'lucide-react';
 import { type Screen } from '../../core/types';
 import { useTree } from '../../hooks/useTree';
+import { useSessions, useWeekActivity } from '../../hooks/useSessions';
 import TreeSketch from '../TreeSketch';
 
 interface SanctuaryProps {
@@ -13,6 +14,20 @@ interface SanctuaryProps {
 
 export default function Sanctuary({ treeName, treeId, onNavigate }: SanctuaryProps) {
   const { tree, loading: treeLoading } = useTree(treeId ?? null);
+  const { sessions } = useSessions(treeId ?? null, 3);
+  const activeDays = useWeekActivity(treeId ?? null);
+  const avgDuration = sessions.length > 0
+    ? Math.round(sessions.reduce((sum, s) => sum + s.durationMinutes, 0) / sessions.length)
+    : null;
+  const currentStreak = tree?.currentStreak ?? 0;
+
+  const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6 + i);
+    return d;
+  });
+
   const displayName = tree?.name ?? treeName ?? 'Aethelgard';
   return (
     <motion.div 
@@ -94,12 +109,12 @@ export default function Sanctuary({ treeName, treeId, onNavigate }: SanctuaryPro
                     </div>
                     <span className="font-body text-[13px] uppercase tracking-widest font-bold text-on-surface opacity-60">Average Session</span>
                   </div>
-                  <span className="font-body text-[10px] uppercase tracking-widest font-bold text-on-surface opacity-30">Last 3</span>
+                  <span className="font-body text-[10px] uppercase tracking-widest font-bold text-on-surface opacity-30">{sessions.length > 0 ? `Last ${sessions.length}` : ''}</span>
                 </div>
                 <div>
                   <div className="flex items-baseline gap-4">
-                    <span className="font-headline text-7xl text-primary leading-none">18</span>
-                    <span className="font-body text-xl text-on-surface opacity-60 font-light italic">minutes</span>
+                    <span className="font-headline text-7xl text-primary leading-none">{avgDuration ?? '—'}</span>
+                    <span className="font-body text-xl text-on-surface opacity-60 font-light italic">{avgDuration !== null ? 'minutes' : 'no sessions yet'}</span>
                   </div>
                 </div>
               </div>
@@ -114,20 +129,27 @@ export default function Sanctuary({ treeName, treeId, onNavigate }: SanctuaryPro
                 </div>
                 <div className="space-y-6">
                   <div className="flex items-baseline gap-4">
-                    <span className="font-headline text-5xl text-on-surface">4</span>
+                    <span className="font-headline text-5xl text-on-surface">{currentStreak}</span>
                     <span className="font-body text-xl text-on-surface opacity-60 font-light italic">day streak</span>
                   </div>
-                  <div className="flex gap-3">
-                    {['M', 'T', 'W', 'T', 'F'].map((day, idx) => (
-                      <div 
-                        key={day + idx} 
-                        className={`w-10 h-10 rounded-full flex items-center justify-center font-body text-[11px] font-bold transition-all duration-500 ${
-                          idx < 4 ? 'bg-[#5a5a40] text-white shadow-md' : 'bg-white border border-on-surface/5 text-on-surface opacity-20'
-                        }`}
-                      >
-                        {day}
-                      </div>
-                    ))}
+                  <div className="flex gap-2">
+                    {last7Days.map((date) => {
+                      const key = date.toISOString().split('T')[0];
+                      const active = activeDays.has(key);
+                      const isToday = key === new Date().toISOString().split('T')[0];
+                      return (
+                        <div
+                          key={key}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center font-body text-[10px] font-bold transition-all duration-500 ${
+                            active
+                              ? 'bg-[#5a5a40] text-white shadow-md'
+                              : 'bg-white border border-on-surface/5 text-on-surface opacity-20'
+                          } ${isToday ? 'ring-2 ring-[#5a5a40]/40 ring-offset-1' : ''}`}
+                        >
+                          {DAY_LABELS[date.getDay()]}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

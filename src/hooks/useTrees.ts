@@ -12,6 +12,8 @@ export interface Tree {
   sqs: number;
   hasBloomed?: boolean;
   groveId?: string | null;
+  currentStreak?: number;
+  lastSessionDate?: Date | null;
 }
 
 const TREES = 'trees';
@@ -50,6 +52,8 @@ export function useTrees(user?: User | null) {
               createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
               hasBloomed: data.hasBloomed as boolean | undefined,
               groveId: data.groveId as string | undefined,
+              currentStreak: (data.currentStreak ?? 0) as number,
+              lastSessionDate: data.lastSessionDate?.toDate ? data.lastSessionDate.toDate() : null,
             } satisfies Tree;
           }));
           setLoading(false);

@@ -91,7 +91,22 @@ export function useSession({ createSession, updateSession, updateTree }: Session
     const tree = trees.find(t => t.id === session.treeId);
     const addedHours = duration / 60;
     const newTotalHours = (tree?.totalHours ?? 0) + addedHours;
-    await updateTree(session.treeId, { totalHours: newTotalHours, sqs: newSqs });
+
+    // Streak: compare today's date (midnight) against lastSessionDate (midnight).
+    // Same day → unchanged (multiple sessions). Yesterday → +1. Older → reset to 1.
+    const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+    const yesterdayMidnight = new Date(todayMidnight); yesterdayMidnight.setDate(yesterdayMidnight.getDate() - 1);
+    const lastMidnight = tree?.lastSessionDate ? new Date(tree.lastSessionDate) : null;
+    if (lastMidnight) lastMidnight.setHours(0, 0, 0, 0);
+    const newStreak = !lastMidnight
+      ? 1
+      : lastMidnight.getTime() === todayMidnight.getTime()
+        ? (tree?.currentStreak ?? 1)
+        : lastMidnight.getTime() === yesterdayMidnight.getTime()
+          ? (tree?.currentStreak ?? 0) + 1
+          : 1;
+
+    await updateTree(session.treeId, { totalHours: newTotalHours, sqs: newSqs, currentStreak: newStreak, lastSessionDate: new Date() });
 
     triggerEndSession(newTotalHours, addedHours);
 
