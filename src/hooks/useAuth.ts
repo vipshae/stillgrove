@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { useState, useEffect, useCallback } from 'react';
+import { onAuthStateChanged, signOut as firebaseSignOut, type User } from 'firebase/auth';
 import { auth } from '../firebase';
 
 export function useAuth() {
@@ -14,5 +14,7 @@ export function useAuth() {
     return unsub;
   }, []);
 
-  return { user, loading };
+  const signOut = useCallback(() => firebaseSignOut(auth), []);
+
+  return { user, loading, signOut };
 }

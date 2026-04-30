@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, startTransition } from 'react'
 import { AnimatePresence } from 'motion/react';
-import { Leaf, Settings } from 'lucide-react';
+import { Leaf, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { type Screen } from './core/types.ts';
 import { useTrees } from './hooks/useTrees'
 import { useAuth } from './hooks/useAuth'
@@ -22,7 +22,20 @@ export default function App() {
   const historyRef = useRef<Screen[]>(['landing']);
 
   // ---- Data ----
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showAccountMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAccountMenu]);
   const { trees, initialized: treesInitialized, error: treesError, createTree, createSession, updateSession, updateTree } = useTrees(user);
   const { sessionDurationMinutes, sessionResult, onSignal, startSession, finishSession, resetSession } = useSession({ createSession, updateSession, updateTree });
 
@@ -193,16 +206,44 @@ export default function App() {
                 </a>
               ))}
             </nav>
-            <div className="flex items-center gap-4">
-              {currentScreen === 'sanctuary' && (
-                <button className="text-primary/60 hover:text-primary transition-colors p-2">
-                  <Settings className="w-6 h-6" />
-                </button>
-              )}
-              <button className="text-primary/60 hover:text-primary transition-colors p-2">
+            {user && <div className="relative" ref={accountMenuRef}>
+              <button
+                onClick={() => setShowAccountMenu(prev => !prev)}
+                className="flex items-center gap-1.5 text-primary/60 hover:text-primary transition-colors p-2"
+              >
                 <span className="material-symbols-outlined text-2xl">account_circle</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAccountMenu ? 'rotate-180' : ''}`} />
               </button>
-            </div>
+
+              {showAccountMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-on-surface/5 overflow-hidden z-50 py-1.5">
+                  {user && (
+                    <>
+                      <div className="px-4 py-3 border-b border-on-surface/5">
+                        <p className="font-body text-[11px] uppercase tracking-widest font-bold text-on-surface/40">Signed in as</p>
+                        <p className="font-body text-sm text-on-surface/80 truncate mt-0.5">{user.email}</p>
+                      </div>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setShowAccountMenu(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left font-body text-sm text-on-surface/70 hover:bg-surface-container-low hover:text-on-surface transition-colors"
+                  >
+                    <Settings className="w-4 h-4 opacity-60" />
+                    Settings
+                  </button>
+                  {user && (
+                    <button
+                      onClick={() => { setShowAccountMenu(false); signOut(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left font-body text-sm text-red-500/80 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>}
           </div>
         </header>
       )}
