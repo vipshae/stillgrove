@@ -1,7 +1,4 @@
 // ─── Stillness Quality Score (SQS) Calculator ────────────────────────────────
-// Pure function module. No p5.js dependencies.
-// Can run in browser, PWA, native app, or server-side.
-//
 // Usage:
 //   const sqs = calculateSQS(sessionData, history);
 //   endSession(newTotalHours, sessionLen, sqs);

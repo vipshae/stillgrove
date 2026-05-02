@@ -1,3 +1,5 @@
+import type { TreeStage } from './stages';
+
 export type Screen =
   | 'landing'
   | 'auth'
@@ -6,6 +8,7 @@ export type Screen =
   | 'pre_session'
   | 'breathing'
   | 'closing'
+  | 'milestone'
   | 'session_result';
 
 export interface Distraction {
@@ -35,8 +38,18 @@ export interface SessionResultData {
   durationMinutes: number;
   totalHours: number;
   prevTotalHours: number;
+  // Hours to replay the growth animation from. Equal to prevTotalHours for
+  // same-stage sessions; equal to the new stage's minHours when a stage boundary
+  // was crossed (so the animation starts from the stage entry state).
+  replayFromHours: number;
   moodBefore: number | null;
   moodAfter: number;
   treeName: string;
   treeId: string | null;
+  crossedStages: TreeStage[];
+}
+
+export interface MilestoneData {
+  stage: TreeStage;
+  treeName: string;
 }

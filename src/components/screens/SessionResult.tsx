@@ -9,7 +9,7 @@ interface SessionResultProps {
   sqs: number;
   durationMinutes: number;
   totalHours: number;
-  prevTotalHours: number;
+  replayFromHours: number;
   moodBefore: number | null;
   moodAfter: number;
   treeName: string;
@@ -30,18 +30,21 @@ export default function SessionResult({
   sqs,
   durationMinutes,
   totalHours,
-  prevTotalHours,
+  replayFromHours,
   moodBefore,
   moodAfter,
   treeName,
   onNavigate,
 }: SessionResultProps) {
-  // After the new p5 instance mounts via TreeSketch, replay the growth animation
+  // After the new canvas instance mounts via TreeSketch, replay the growth animation
   // from the pre-session baseline so the tree visibly grows on this screen.
+  // replayFromHours is prevTotalHours for same-stage sessions, or the new
+  // stage's minHours when a boundary was crossed — so the tree animates from
+  // the stage entry state on the freshly-mounted canvas.
   useEffect(() => {
-    const id = setTimeout(() => replayGrowthAnimation(prevTotalHours), 120);
+    const id = setTimeout(() => replayGrowthAnimation(replayFromHours), 120);
     return () => clearTimeout(id);
-  }, [prevTotalHours]);
+  }, [replayFromHours]);
 
   const hours = Math.floor(durationMinutes / 60);
   const mins = durationMinutes % 60;

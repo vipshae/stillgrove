@@ -30,6 +30,8 @@ landing → auth → naming (first time) → sanctuary
                                            ↓
                                          closing    (record mood after)
                                            ↓
+                                     milestone(s)   (one per crossed stage boundary, if any)
+                                           ↓
                                       session_result (animated tree growth + stats)
                                            ↓
                                         sanctuary   (updated stats)
@@ -57,17 +59,21 @@ SessionResult
 Sanctuary (reflects updated tree from Firestore via onSnapshot)
 ```
 
-### p5.js / sketch integration
+### Canvas 2D / sketch integration
 
-`sketch.ts` uses **module-level globals** (`TotalHours`, `SQS`, `growthProgress`, `isAnimating`, etc.) because p5 manages its own draw loop outside React. React props flow in via setter exports:
+`sketch.ts` exports a `CanvasTreeSketch` class that wraps an HTML `<canvas>` element and runs its own `requestAnimationFrame` draw loop outside React. React props flow in via instance methods:
 
-- `setTotalHours(h)` / `setSQS(s)` — synced from `TreeSketch` props on every render
-- `triggerEndSession(newHours, sessionHours)` — sets growth target, spawns burst particles, starts animation
-- `replayGrowthAnimation(prevHours)` — resets `growthProgress` to old baseline and re-starts animation; used by `SessionResult` after a fresh p5 mount
+- `setTotalHours(h)` / `setSQS(s)` — called from `TreeSketch` props on every render; triggers tree regeneration when the stage changes
+- `triggerEndSession(newHours)` — sets growth target, spawns burst particles, starts animation
+- `replayGrowthAnimation(fromHours)` — resets `growthProgress` to a prior baseline and re-starts animation; used by `SessionResult` after a fresh canvas mount
 
-`TreeSketch.tsx` clears the container (`innerHTML = ''`) before creating a new p5 instance to avoid React StrictMode double-mount leaving two canvases.
+`TreeSketch.tsx` clears the container (`innerHTML = ''`) before instantiating a new `CanvasTreeSketch` to avoid React StrictMode double-mount leaving two canvases.
 
-p5 v2 uses `bezierVertex(x, y)` per control/anchor point (one call per point, 3 calls per cubic segment) — different from p5 v1's 6-arg single call. The helper `cubicBezierTo(p, cp1x, cp1y, cp2x, cp2y, ex, ey)` wraps this.
+Canvas 2D bezier curves use the standard `ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey)` 6-arg form. The helper `cubicBezierTo(ctx, cp1x, cp1y, cp2x, cp2y, ex, ey)` wraps this for readability.
+
+#### Tree generation
+
+The tree is built once per stage via seeded recursive branching (`mulberry32` PRNG). `generateStableBranch` produces a stable `Branch[]` topology from the seed; `growthProgress` (mapped from `totalHours` via a square-root curve) controls which depth levels are revealed during rendering. `treeMaxDepth` and per-stage branching probabilities (`stageEarlyP0/P01`, `stageMatureP0/P01`, `stageLenLow/High`) increase across the 5 stages to add density over time. When `setTotalHours` detects a stage change, it calls `regenerateTree` to rebuild with the new params — always resetting the PRNG to `treeSeedNum` first so topology is deterministic.
 
 ### Firebase / data model
 
@@ -85,9 +91,10 @@ p5 v2 uses `bezierVertex(x, y)` per control/anchor point (one call per point, 3 
 | File | Role |
 |------|------|
 | `src/App.tsx` | Navigation state machine, session lifecycle handlers |
-| `src/core/sketch.ts` | p5.js tree renderer, module-level globals, animation exports |
+| `src/core/sketch.ts` | Canvas 2D tree renderer (`CanvasTreeSketch` class), animation exports |
+| `src/core/stages.ts` | 5-stage tree growth definitions, `getStage`, `getCrossedStages` |
 | `src/core/sqs.ts` | Session Quality Score pure function |
-| `src/components/TreeSketch.tsx` | p5 React wrapper |
+| `src/components/TreeSketch.tsx` | React wrapper that mounts/unmounts `CanvasTreeSketch` |
 | `src/components/screens/` | One file per screen |
 | `src/hooks/useTrees.ts` | Firestore trees |
 | `src/hooks/useAuth.ts` | Firebase auth state |

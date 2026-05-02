@@ -14,12 +14,16 @@ import Breathing from './components/screens/Breathing.tsx';
 import Closing from './components/screens/Closing.tsx';
 import Loading from './components/screens/Loading.tsx'
 import SessionResult from './components/screens/SessionResult.tsx'
+import Milestone from './components/screens/Milestone.tsx'
+import type { TreeStage } from './core/stages'
 
 export default function App() {
   // ---- Routing ----
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
   const historyRef = useRef<Screen[]>(['landing']);
+  // Queue of stage milestones to show before session_result. Consumed one-by-one.
+  const [milestoneQueue, setMilestoneQueue] = useState<TreeStage[]>([]);
 
   // ---- Data ----
   const { user, loading: authLoading, signOut } = useAuth();
@@ -128,11 +132,30 @@ export default function App() {
 
   const handleFinishSession = async (moodAfter: number) => {
     try {
-      await finishSession(moodAfter, trees);
-      historyRef.current = [...historyRef.current, 'session_result'];
-      setCurrentScreen('session_result');
+      const result = await finishSession(moodAfter, trees);
+      if (result && result.crossedStages.length > 0) {
+        setMilestoneQueue(result.crossedStages);
+        historyRef.current = [...historyRef.current, 'milestone'];
+        setCurrentScreen('milestone');
+      } else {
+        historyRef.current = [...historyRef.current, 'session_result'];
+        setCurrentScreen('session_result');
+      }
     } catch (err) {
       console.error('Failed to finalize session', err);
+    }
+  };
+
+  const handleMilestoneContinue = () => {
+    const remaining = milestoneQueue.slice(1);
+    setMilestoneQueue(remaining);
+    if (remaining.length > 0) {
+      // Another milestone to show — stay on milestone screen, queue update triggers re-render
+      historyRef.current = [...historyRef.current, 'milestone'];
+      setCurrentScreen('milestone');
+    } else {
+      historyRef.current = [...historyRef.current, 'session_result'];
+      setCurrentScreen('session_result');
     }
   };
 
@@ -157,6 +180,16 @@ export default function App() {
         }} onSignal={onSignal} />;
       case 'closing':
         return <Closing key="closing" onFinish={handleFinishSession} durationMinutes={sessionDurationMinutes} />;
+      case 'milestone':
+        return milestoneQueue[0] ? (
+          <Milestone
+            key={`milestone-${milestoneQueue[0].index}`}
+            stage={milestoneQueue[0]}
+            treeName={treeName}
+            remainingCount={milestoneQueue.length}
+            onContinue={handleMilestoneContinue}
+          />
+        ) : null;
       case 'session_result':
         return sessionResult ? (
           <SessionResult key="session_result" {...sessionResult} onNavigate={navigate} />

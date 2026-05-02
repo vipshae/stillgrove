@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import p5 from 'p5';
-import { sketch, setTotalHours, setSQS } from "../core/sketch.ts";
+import { initCanvas, setTotalHours, setSQS, CanvasTreeSketch } from "../core/sketch.ts";
 
 interface TreeSketchProps {
   totalHours: number;
@@ -9,18 +8,17 @@ interface TreeSketchProps {
 
 const TreeSketch: React.FC<TreeSketchProps> = ({ totalHours, sqs }) => {
   const sketchRef = useRef<HTMLDivElement>(null);
-  const p5InstanceRef = useRef<p5 | null>(null);
+  const canvasInstanceRef = useRef<CanvasTreeSketch | null>(null);
 
   useEffect(() => {
-    if (sketchRef.current && !p5InstanceRef.current) {
+    if (sketchRef.current && !canvasInstanceRef.current) {
       sketchRef.current.innerHTML = '';
-      p5InstanceRef.current = new p5(sketch, sketchRef.current);
+      canvasInstanceRef.current = initCanvas(sketchRef.current);
     }
 
     return () => {
-      if (p5InstanceRef.current) {
-        p5InstanceRef.current.remove();
-        p5InstanceRef.current = null;
+      if (canvasInstanceRef.current) {
+        canvasInstanceRef.current = null;
       }
     };
   }, []);

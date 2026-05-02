@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { calculateSQS } from '../core/sqs';
 import { triggerEndSession } from '../core/sketch';
+import { getCrossedStages, getStage } from '../core/stages';
 import type { ActiveSession, DistractionSignal, SessionResultData } from '../core/types';
 import type { Tree } from './useTrees';
 
@@ -64,7 +65,7 @@ export function useSession({ createSession, updateSession, updateTree }: Session
 
   // trees is passed at call time rather than being a dep, so finishSession stays stable
   // even as the Firestore snapshot updates the tree list during a session.
-  const finishSession = useCallback(async (moodAfter: number, trees: Tree[]) => {
+  const finishSession = useCallback(async (moodAfter: number, trees: Tree[]): Promise<SessionResultData | undefined> => {
     const session = activeSessionRef.current;
     if (!session) return;
     stopTimer();
@@ -110,20 +111,34 @@ export function useSession({ createSession, updateSession, updateTree }: Session
 
     triggerEndSession(newTotalHours, addedHours);
 
-    setSessionResult({
+    const prevTotalHours = tree?.totalHours ?? 0;
+    const crossedStages  = getCrossedStages(prevTotalHours, newTotalHours);
+    // If a stage boundary was crossed, replay the animation from the new stage's
+    // entry point so the tree visibly grows from a fresh start on the new canvas.
+    const replayFromHours = crossedStages.length > 0
+      ? getStage(newTotalHours).minHours
+      : prevTotalHours;
+
+    const result: SessionResultData = {
       sqs:           newSqs,
       durationMinutes: duration,
       totalHours:    newTotalHours,
-      prevTotalHours: tree?.totalHours ?? 0,
+      prevTotalHours,
+      replayFromHours,
       moodBefore:    session.moodBefore,
       moodAfter,
       treeName:      tree?.name ?? '',
       treeId:        session.treeId,
-    });
+      crossedStages,
+    };
+
+    setSessionResult(result);
 
     activeSessionRef.current = null;
     sessionDurationRef.current = 0;
     setSessionDurationMinutes(0);
+
+    return result;
   }, [stopTimer, updateSession, updateTree]);
 
   // Called on sign-out to discard any in-progress session

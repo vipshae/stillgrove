@@ -11,4 +11,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, '.'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),                     // your existing entry
+        'test-canvas-tree': path.resolve(__dirname, 'test-tree.html'),  // the test page
+      },
+    },
+  },
 })
